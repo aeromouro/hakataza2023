@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    /* Add your styles for the seat map here */
+    .floor {
+      margin-bottom: 20px;
+    }
+
+    .seat {
+      width: 30px;
+      height: 30px;
+      margin: 5px;
+      display: inline-block;
+      cursor: pointer;
+    }
+
+    .seat.available {
+      background-color: #00ff00; /* Green color indicates an available seat */
+    }
+
+    .seat.reserved {
+      background-color: #ffff00; /* Yellow color indicates a reserved seat */
+    }
+
+    .seat.paid {
+      background-color: #ff0000; /* Red color indicates a paid seat */
+    }
+
+    .legend {
+      margin-top: 10px;
+    }
+
+    .info {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <label for="floor-dropdown">フロアを選択してください：</label>
+  <select id="floor-dropdown" onchange="updateSeatMap()">
+    <option value="A">1階</option>
+    <option value="B">2階</option>
+    <option value="C">3階</option>
+  </select>
+
+  <div id="seat-map">
+    <!-- 座席マップのレイアウトがここに表示されます -->
+  </div>
+
+  <div class="legend">
+    <p>凡例：</p>
+    <div class="seat available"></div> 利用可能
+    <div class="seat reserved"></div> 予約済み
+    <div class="seat paid"></div> 支払済み
+  </div>
+
+  <div id="floor-info" class="info">
+    <!-- フロア情報がここに表示されます -->
+  </div>
+
+  <script>
+    // サンプルデータ - サーバー/データベースから取得します
+    const seatData = [
+      // 1階
+      { id: 'A1', status: 'available' },
+      { id: 'A2', status: 'available' },
+      { id: 'A3', status: 'available' },
+      { id: 'A4', status: 'available' },
+      { id: 'A5', status: 'available' },
+      { id: 'A6', status: 'available' },
+      { id: 'A7', status: 'available' },
+      { id: 'A8', status: 'available' },
+      { id: 'A9', status: 'available' },
+      { id: 'A10', status: 'available' },
+      // 2階
+      { id: 'B1', status: 'available' },
+      { id: 'B2', status: 'available' },
+      { id: 'B3', status: 'available' },
+      { id: 'B4', status: 'available' },
+      { id: 'B5', status: 'available' },
+      // 3階
+      { id: 'C1', status: 'available' },
+      { id: 'C2', status: 'available' },
+      { id: 'C3', status: 'available' },
+    ];
+
+    const floorDropdown = document.getElementById('floor-dropdown');
+    const seatMap = document.getElementById('seat-map');
+    const floorInfo = document.getElementById('floor-info');
+
+    // 座席マップを描画する関数
+    function renderSeatMap(selectedFloor) {
+      seatMap.innerHTML = ''; // 以前のコンテンツをクリア
+
+      // 選択されたフロアに基づいて座席をフィルタリング
+      const filteredSeats = seatData.filter(seat => seat.id.startsWith(selectedFloor));
+
+      // フロアごとに座席をグループ化
+      const seatsByFloors = groupSeatsByFloors(filteredSeats);
+
+      // 各フロアを描画
+      seatsByFloors.forEach(floor => {
+        const floorContainer = document.createElement('div');
+        floorContainer.className = 'floor';
+
+        floor.forEach(seat => {
+          const seatElement = document.createElement('div');
+          seatElement.className = `seat ${seat.status}`;
+          seatElement.textContent = seat.id;
+
+          // クリックイベントリスナーを追加して座席の選択/非選択を処理
+          seatElement.addEventListener('click', () => toggleSeatSelection(seat.id));
+
+          floorContainer.appendChild(seatElement);
+        });
+
+        seatMap.appendChild(floorContainer);
+      });
+
+      // フロア情報を更新
+      updateFloorInfo(selectedFloor);
+    }
+
+    // フロアごとに座席をグループ化する関数
+    function groupSeatsByFloors(seats) {
+      const seatsByFloors = {};
+      seats.forEach(seat => {
+        const [floor] = seat.id.match(/[A-Z]+/);
+        if (!seatsByFloors[floor]) {
+          seatsByFloors[floor] = [];
+        }
+        seatsByFloors[floor].push(seat);
+      });
+      return Object.values(seatsByFloors);
+    }
+
+    // 座席の選択/非選択を切り替える関数
+    function toggleSeatSelection(seatId) {
+      const selectedSeat = seatData.find(seat => seat.id === seatId);
+
+      // 利用可能、予約済み、支払済みをループで切り替え
+      if (selectedSeat.status === 'available') {
+        selectedSeat.status = 'reserved';
+      } else if (selectedSeat.status === 'reserved') {
+        selectedSeat.status = 'paid';
+      } else {
+        selectedSeat.status = 'available';
+      }
+
+      renderSeatMap(floorDropdown.value); // 選択されたフロアに基づいて座席マップを更新
+
+      // 選択の概要を更新するなど、追加のアクションも実行できます
+      console.log(`座席 ${seatId} ${selectedSeat.status}`);
+    }
+
+    // フロア情報を更新する関数
+    function updateFloorInfo(selectedFloor) {
+      const floorSeats = seatData.filter(seat => seat.id.startsWith(selectedFloor));
+      const availableSeats = floorSeats.filter(seat => seat.status === 'available').length;
+      const reservedSeats = floorSeats.filter(seat => seat.status === 'reserved').length;
+      const paidSeats = floorSeats.filter(seat => seat.status === 'paid').length;
+
+      floorInfo.innerHTML = `
+        <p>フロア情報：</p>
+        <p>利用可能な座席：${availableSeats}</p>
+        <p>予約済みの座席：${reservedSeats}</p>
+        <p>支払済みの座席：${paidSeats}</p>
+      `;
+    }
+
+    // フロアが変更されたときに座席マップを更新する関数
+    function updateSeatMap() {
+      renderSeatMap(floorDropdown.value);
+    }
+
+    // 座席マップの初回描画
+    renderSeatMap(floorDropdown.value);
+  </script>
+
+</body>
+</html>
+
+Initial commit
